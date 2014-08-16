@@ -41,135 +41,135 @@ class GFWList {
     function processGFWContent(& $content, $outputfilename) {
         // process gfwlist
         debug("==processGFWContent");
-          $lines = explode("\n", $content);
-          $domains = array();
-          $domaincount = 0;
-          foreach ($lines as $line) {
-              if (empty($line)) {
-                  continue;
-              } else {
-                  $firstchar = substr($line, 0, 1);
-                  if ($firstchar == '[') {
-                      // session header, ignore
-                      $this->debug_invalid($line);
-                      continue;
-                  } else if ($firstchar == '!') {
-                      // comments, ignore
-                      $this->debug_invalid($line);
-                      continue;
-                  } else if ($firstchar == '@') {
-                      // white list, ignore
-                      $this->debug_invalid($line);
-                      continue;
-                  } else if (filter_var($line, FILTER_VALIDATE_IP)) {
-                      // ip address, ignore
-                      $this->debug_invalid($line);
-                      continue;
-                  } else {
-                      // reg matching, remove prefix
-                      $firsttwochars = substr($line, 0, 2);
-                      if ($firsttwochars == '||') {
-                          $line = substr($line, 2);
-                      }
+        $lines = explode("\n", $content);
+        $domains = array();
+        $domaincount = 0;
+        foreach ($lines as $line) {
+            if (empty($line)) {
+                continue;
+            } else {
+                $firstchar = substr($line, 0, 1);
+                if ($firstchar == '[') {
+                    // session header, ignore
+                    $this->debug_invalid($line);
+                    continue;
+                } else if ($firstchar == '!') {
+                    // comments, ignore
+                    $this->debug_invalid($line);
+                    continue;
+                } else if ($firstchar == '@') {
+                    // white list, ignore
+                    $this->debug_invalid($line);
+                    continue;
+                } else if (filter_var($line, FILTER_VALIDATE_IP)) {
+                    // ip address, ignore
+                    $this->debug_invalid($line);
+                    continue;
+                } else {
+                    // reg matching, remove prefix
+                    $firsttwochars = substr($line, 0, 2);
+                    if ($firsttwochars == '||') {
+                        $line = substr($line, 2);
+                    }
 
-                      $firstchar = substr($line, 0, 1);
-                      // exact matching, remove prefix
-                      if ($firstchar == '|') {
-                          $line = substr($line, 1);
-                      // subdomain matching, remove prefix
-                      } else if ($firstchar == '.') {
-                          $line = substr($line, 1);
-                      }
+                    $firstchar = substr($line, 0, 1);
+                    if ($firstchar == '|') {
+                        // exact matching, remove prefix
+                        $line = substr($line, 1);
+                    } else if ($firstchar == '.') {
+                        // subdomain matching, remove prefix
+                        $line = substr($line, 1);
+                    }
 
-                      // remove scheme
-                      $line = str_ireplace("http://", '', $line);
-                      $line = str_ireplace("https://", '', $line);
+                    // remove scheme
+                    $line = str_ireplace("http://", '', $line);
+                    $line = str_ireplace("https://", '', $line);
 
-                      // postfix keyword matching, just remove anything after *
-                      $posofchar = stripos($line, '*');
-                      if ($posofchar > 0) {
-                          $line = substr($line, 0, $posofchar);
-                      }
+                    // postfix keyword matching, just remove anything after *
+                    $posofchar = stripos($line, '*');
+                    if ($posofchar > 0) {
+                        $line = substr($line, 0, $posofchar);
+                    }
 
-                      // stop at first slash, keep the hostname
-                      $posofchar = stripos($line, '/');
-                      if ($posofchar > 0) {
-                          $line = substr($line, 0, $posofchar);
-                      }
+                    // stop at first slash, keep the hostname
+                    $posofchar = stripos($line, '/');
+                    if ($posofchar > 0) {
+                        $line = substr($line, 0, $posofchar);
+                    }
 
-                      // stop at first slash(url-encoded), keep the hostname
-                      $posofchar = stripos($line, '%');
-                      if ($posofchar > 0) {
-                          $line = substr($line, 0, $posofchar);
-                      }
+                    // stop at first slash(url-encoded), keep the hostname
+                    $posofchar = stripos($line, '%');
+                    if ($posofchar > 0) {
+                        $line = substr($line, 0, $posofchar);
+                    }
 
-                      $firstchar = substr($line, 0, 1);
-                      $lastchar = substr($line, -1, 1);
-                      $invalid = false;
-                      if ($firstchar == '[') {
-                          // just to make it same with former judgement...
-                          $this->debug_invalid($line);
-                          continue;
-                      } else if ($firstchar == '!') {
-                          // special lines like "||!--isaacmao.com"
-                          $this->debug_invalid($line);
-                          continue;
-                      } else if ($firstchar == '@') {
-                          // just to make it same with former judgement...
-                          $this->debug_invalid($line);
-                          continue;
-                      } else if ($firstchar == '/') {
-                          // reg expression or special lines like "/search?q=cache"
-                          $this->debug_invalid($line);
-                          continue;
-                      } else if ($firstchar == '%') {
-                          // url-encoded, special lines like "%2Fsearch%3Fq%3Dcache"
-                          $this->debug_invalid($line);
-                          continue;
-                      }
+                    $firstchar = substr($line, 0, 1);
+                    $lastchar = substr($line, -1, 1);
+                    $invalid = false;
+                    if ($firstchar == '[') {
+                        // just to make it same with former judgement...
+                        $this->debug_invalid($line);
+                        continue;
+                    } else if ($firstchar == '!') {
+                        // special lines like "||!--isaacmao.com"
+                        $this->debug_invalid($line);
+                        continue;
+                    } else if ($firstchar == '@') {
+                        // just to make it same with former judgement...
+                        $this->debug_invalid($line);
+                        continue;
+                    } else if ($firstchar == '/') {
+                        // reg expression or special lines like "/search?q=cache"
+                        $this->debug_invalid($line);
+                        continue;
+                    } else if ($firstchar == '%') {
+                      // url-encoded, special lines like "%2Fsearch%3Fq%3Dcache"
+                        $this->debug_invalid($line);
+                        continue;
+                    }
 
-                      if ($lastchar == '.') {
-                          // end with a dot, like "google."
-                          $this->debug_invalid($line);
-                          continue;
-                      }
+                    if ($lastchar == '.') {
+                        // end with a dot, like "google."
+                        $this->debug_invalid($line);
+                        continue;
+                    }
 
-                      $posofchar = stripos($line, '.');
-                      if (!$posofchar > 0) {
-                          // has no dot, like "google"
-                          $this->debug_invalid($line);
-                          continue;
-                      }
+                    $posofchar = stripos($line, '.');
+                    if (!$posofchar > 0) {
+                        // has no dot, like "google"
+                        $this->debug_invalid($line);
+                        continue;
+                    }
 
-                      if ($firstchar == '*') {
-                          // still start with *, subdomain matching, keep the top domain
-                          $line = substr($line, 1);
-                      }
+                    if ($firstchar == '*') {
+                        // still start with *, subdomain matching, keep the top domain
+                        $line = substr($line, 1);
+                    }
 
-                      $firstchar = substr($line, 0, 1);
-                      if ($firstchar == '.') {
-                          // still start with a dot, subdomain matching, keep the top domain
-                          $line = substr($line, 1);
-                      }
+                    $firstchar = substr($line, 0, 1);
+                    if ($firstchar == '.') {
+                        // still start with a dot, subdomain matching, keep the top domain
+                        $line = substr($line, 1);
+                    }
 
-                      if (!filter_var('http://' . $line, FILTER_VALIDATE_URL)) {
-                          // most of the time, we have got the domain now, so check if it is a valid url
-                          $this->debug_invalid($line);
-                          continue;
-                      }
+                    if (!filter_var('http://' . $line, FILTER_VALIDATE_URL)) {
+                        // most of the time, we have got the domain now, so check if it is a valid url
+                        $this->debug_invalid($line);
+                        continue;
+                    }
 
-                      if (addtoarray($domains, $line)) {
-                          $domaincount++;
-                      }
+                    if (addtoarray($domains, $line)) {
+                        $domaincount++;
+                    }
 
-                      $this->debug_valid($line);
-                  }
-              }
-          }
-          printarraytofile($domains, $outputfilename);
-          debug_printarray($domains);
-          debug("==processGFWContent: done.");
-          return $domains;
+                    $this->debug_valid($line);
+                }
+            }
+        }
+        printarraytofile($domains, $outputfilename);
+        debug_printarray($domains);
+        debug("==processGFWContent: done.");
+        return $domains;
     }
 
     function generateDnsmasqConf(& $domains, $dnsserver, $ipsetname, $templatefile, $extracontentfile, $outputfilename) {
