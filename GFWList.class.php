@@ -12,11 +12,27 @@ class GFWList {
         $this->__construct();
     }
 
+    function debug_valid($log) {
+        if ($GLOBALS['cfg_debug_valid']) {
+            debug($log);
+        }
+    }
+
+    function debug_invalid($log) {
+        if ($GLOBALS['cfg_debug_invalid']) {
+            debug($log);
+        }
+    }
+
+    function debug_mail($log) {
+        if ($GLOBALS['cfg_debug_mail']) {
+            debug($log);
+        }
+    }
+
     function getGFWContent($url, $outputfilename) {
         // download gfwlist and decode it
-        if ($GLOBALS['cfg_debug']) {
-            echo "==getGFWContent" . "<br/>";
-        }
+        debug("==getGFWContent");
         $content = base64_decode(getcontent($url));
         savefile($content, $outputfilename);
         return $content;
@@ -24,9 +40,7 @@ class GFWList {
 
     function processGFWContent(& $content, $outputfilename) {
         // process gfwlist
-        if ($GLOBALS['cfg_debug']) {
-            echo "==processGFWContent" . "<br/>";
-        }
+        debug("==processGFWContent");
           $lines = explode("\n", $content);
           $domains = array();
           $domaincount = 0;
@@ -37,27 +51,19 @@ class GFWList {
                   $firstchar = substr($line, 0, 1);
                   if ($firstchar == '[') {
                       // session header, ignore
-                      if ($GLOBALS['cfg_debug_invalid']) {
-                          echo $line . "<br/>";
-                      }
+                      $this->debug_invalid($line);
                       continue;
                   } else if ($firstchar == '!') {
                       // comments, ignore
-                      if ($GLOBALS['cfg_debug_invalid']) {
-                          echo $line . "<br/>";
-                      }
+                      $this->debug_invalid($line);
                       continue;
                   } else if ($firstchar == '@') {
                       // white list, ignore
-                      if ($GLOBALS['cfg_debug_invalid']) {
-                          echo $line . "<br/>";
-                      }
+                      $this->debug_invalid($line);
                       continue;
                   } else if (filter_var($line, FILTER_VALIDATE_IP)) {
                       // ip address, ignore
-                      if ($GLOBALS['cfg_debug_invalid']) {
-                          echo $line . "<br/>";
-                      }
+                      $this->debug_invalid($line);
                       continue;
                   } else {
                       // reg matching, remove prefix
@@ -102,50 +108,36 @@ class GFWList {
                       $invalid = false;
                       if ($firstchar == '[') {
                           // just to make it same with former judgement...
-                          if ($GLOBALS['cfg_debug_invalid']) {
-                              echo $line . "<br/>";
-                          }
+                          $this->debug_invalid($line);
                           continue;
                       } else if ($firstchar == '!') {
                           // special lines like "||!--isaacmao.com"
-                          if ($GLOBALS['cfg_debug_invalid']) {
-                              echo $line . "<br/>";
-                          }
+                          $this->debug_invalid($line);
                           continue;
                       } else if ($firstchar == '@') {
                           // just to make it same with former judgement...
-                          if ($GLOBALS['cfg_debug_invalid']) {
-                              echo $line . "<br/>";
-                          }
+                          $this->debug_invalid($line);
                           continue;
                       } else if ($firstchar == '/') {
                           // reg expression or special lines like "/search?q=cache"
-                          if ($GLOBALS['cfg_debug_invalid']) {
-                              echo $line . "<br/>";
-                          }
+                          $this->debug_invalid($line);
                           continue;
                       } else if ($firstchar == '%') {
                           // url-encoded, special lines like "%2Fsearch%3Fq%3Dcache"
-                          if ($GLOBALS['cfg_debug_invalid']) {
-                              echo $line . "<br/>";
-                          }
+                          $this->debug_invalid($line);
                           continue;
                       }
 
                       if ($lastchar == '.') {
                           // end with a dot, like "google."
-                          if ($GLOBALS['cfg_debug_invalid']) {
-                              echo $line . "<br/>";
-                          }
+                          $this->debug_invalid($line);
                           continue;
                       }
 
                       $posofchar = stripos($line, '.');
                       if (!$posofchar > 0) {
                           // has no dot, like "google"
-                          if ($GLOBALS['cfg_debug_invalid']) {
-                              echo $line . "<br/>";
-                          }
+                          $this->debug_invalid($line);
                           continue;
                       }
 
@@ -162,9 +154,7 @@ class GFWList {
 
                       if (!filter_var('http://' . $line, FILTER_VALIDATE_URL)) {
                           // most of the time, we have got the domain now, so check if it is a valid url
-                          if ($GLOBALS['cfg_debug_invalid']) {
-                              echo $line . "<br/>";
-                          }
+                          $this->debug_invalid($line);
                           continue;
                       }
 
@@ -172,24 +162,18 @@ class GFWList {
                           $domaincount++;
                       }
 
-                      if ($GLOBALS['cfg_debug_valid']) {
-                          echo $line . "<br/>";
-                      }
+                      $this->debug_valid($line);
                   }
               }
           }
-          printarray($domains);
           printarraytofile($domains, $outputfilename);
-          if ($GLOBALS['cfg_debug']) {
-              echo "==processGFWContent: done." . "<br/>";
-        }
+          debug_printarray($domains);
+          debug("==processGFWContent: done.");
           return $domains;
     }
 
     function generateDnsmasqConf(& $domains, $dnsserver, $ipsetname, $templatefile, $extracontentfile, $outputfilename) {
-        if ($GLOBALS['cfg_debug']) {
-            echo "==generateDnsmasqConf" . "<br/>";
-        }
+        debug("==generateDnsmasqConf");
         $template = loadfile($templatefile);
         $dnsmasqconf = $template;
         $dnsmasqconf = $dnsmasqconf . "\n#GFWList Domains" . "\n";
@@ -220,9 +204,7 @@ class GFWList {
         $dnsmasqconf = $dnsmasqconf . "#Last Update Time: " . date("YmdHis") . "\n";
 
         savefile($dnsmasqconf, $outputfilename);
-        if ($GLOBALS['cfg_debug']) {
-            echo "==generateDnsmasqConf: done." . "<br/>";
-        }
+        debug("==generateDnsmasqConf: done.");
         return $dnsmasqconf;
     }
 
@@ -239,14 +221,10 @@ class GFWList {
         }
 
         if (($currentTime - $lastUpdateTime) > $updateinterval) {
-            if ($GLOBALS['cfg_debug']) {
-                echo "==shouldUpdateNow: true" . "<br/>";
-            }
+            debug("==shouldUpdateNow: true");
             return true;
         } else {
-            if ($GLOBALS['cfg_debug']) {
-                echo "==shouldUpdateNow: false" . "<br/>";
-            }
+            debug("==shouldUpdateNow: false");
             return false;
         }
     }
@@ -256,9 +234,7 @@ class GFWList {
     }
 
     function sendListUpdateMail($imagepath, $imageurl) {
-        if ($GLOBALS['cfg_debug']) {
-            echo "==sendlistupdatemail: " . $imageurl . "<br/>";
-        }
+        debug("==sendlistupdatemail: " . $imageurl);
         $image_raw = file_get_contents($imagepath);
         $image_base64 = base64_encode($image_raw);
         $from = $GLOBALS['cfg_mail_from'];
@@ -270,9 +246,7 @@ class GFWList {
         $message = str_ireplace("#image_base64#", $image_base64, $message);
 
         sendmail($from, $replyto, $to, $subject, $message);
-        if ($GLOBALS['cfg_debug_mail']) {
-            echo $message . "<br/>";
-        }
+        $this->debug_mail($message);
     }
 
     function get() {
@@ -334,9 +308,7 @@ class GFWList {
             $dnsmasq_conf = loadfile($target_dnsmasq_file);
         }
 
-        if ($GLOBALS['cfg_debug']) {
-            echo "==consumes: " . (time() - $start) . "s" . "<br/>";
-        }
+        debug("==consumes: " . (time() - $start) . "s");
 
         if ($GLOBALS['cfg_action_get']) {
             echo base64_encode($dnsmasq_conf);

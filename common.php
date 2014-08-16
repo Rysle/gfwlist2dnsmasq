@@ -2,6 +2,27 @@
 
     require_once("config.php");
 
+    function debug($log) {
+        if ($GLOBALS['cfg_debug']) {
+            echo $log . "<br/>";
+        }
+    }
+
+    function debug_addtoarray($log) {
+        if ($GLOBALS['cfg_debug_addtoarray']) {
+            debug($log);
+        }
+    }
+
+    function debug_printarray(& $myarray) {
+        if ($GLOBALS['cfg_debug_printarray']) {
+            debug("==printarray");
+            foreach ($myarray as $value) {
+                debug($value);
+            }
+        }
+    }
+
     function isparamtrue($paramname) {
         if (isset($_REQUEST[$paramname]) && $_REQUEST[$paramname] == "1") {
             return true;
@@ -20,9 +41,7 @@
 
     function getcontent($url) {
         // use curl to download a file, both http/https supported
-        if ($GLOBALS['cfg_debug']) {
-            echo "==getcontent: " . $url . "<br/>";
-        }
+        debug("==getcontent: " . $url);
         $curl = curl_init();
         curl_setopt($curl, CURLOPT_URL, $url);
         curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
@@ -30,29 +49,20 @@
         curl_setopt($curl, CURLOPT_SSL_VERIFYHOST, false);
         $filecontent = curl_exec($curl);
         curl_close($curl);
-        if ($GLOBALS['cfg_debug']) {
-            echo "==getcontent: done." . "<br/>";
-        }
+        debug("==getcontent: done.");
         return $filecontent;
     }
 
     function savefile(& $content, $filename) {
-        if ($GLOBALS['cfg_debug']) {
-            echo "==savefile: " . $filename . "<br/>";
-        }
+        debug("==savefile: " . $filename);
         $myfile = fopen($filename, "w") or die("Unable to open file!");
         fwrite($myfile, $content);
-        if ($GLOBALS['cfg_debug']) {
-            echo "==savefile: done." . "<br/>";
-        }
+        debug("==savefile: done.");
         fclose($myfile);
     }
 
     function loadfile($filename) {
-        if ($GLOBALS['cfg_debug']) {
-            echo "==loadfile: " . $filename . "<br/>";
-        }
-
+        debug("==loadfile: " . $filename);
         if (file_exists($filename)) {
             $myfile = fopen($filename, "r");
             $filecontent = fread($myfile, filesize($filename));
@@ -60,39 +70,22 @@
             $myfile = fopen($filename, "x");
             $filecontent = "";
         }
-        if ($GLOBALS['cfg_debug']) {
-            echo "==loadfile: done." . "<br/>";
-        }
+        debug("==loadfile: done.");
         fclose($myfile);
         return $filecontent;
     }
 
     function addtoarray(& $myarray, $newvalue) {
-        if ($GLOBALS['cfg_debug_addtoarray']) {
-            echo "==addtoarray: ";
-        }
+        debug_addtoarray("==addtoarray: ");
         foreach ($myarray as $value) {
             if ($newvalue == $value) {
-                if ($GLOBALS['cfg_debug_addtoarray']) {
-                    echo "EXISTS: " . $newvalue . "<br/>";
-                }
+                debug_addtoarray("EXISTS: " . $newvalue);
                 return false;
             }
         }
-        if ($GLOBALS['cfg_debug_addtoarray']) {
-            echo "NEW: " . $newvalue . "<br/>";
-        }
+        debug_addtoarray("NEW: " . $newvalue);
         $myarray[] = $newvalue;
         return true;
-    }
-
-    function printarray(& $myarray) {
-        if ($GLOBALS['cfg_debug_printarray']) {
-            echo "==printarray" . "<br/>";
-            foreach ($myarray as $value) {
-                echo $value . "<br/>";
-            }
-        }
     }
 
     function printarraytofile(& $myarray, $filename) {
@@ -127,9 +120,7 @@
     }
 
     function comparediff($file1, $file2, $diffpath) {
-        if ($GLOBALS['cfg_debug']) {
-            echo "==compareDiff" . "<br/>";
-        }
+        debug("==compareDiff");
         $content1 = loadfile($file1);
         $content2 = loadfile($file2);
         $content1_array = explode("\n", $content1);
@@ -144,17 +135,13 @@
             $diffcontent = $diffcontent . implode("\n", $added);
             savefile($diffcontent, $diffpath);
 
-            if ($GLOBALS['cfg_debug']) {
-                echo "==deleted lines: " . "<br/>";
-                printarray($deleted);
-                echo "==added lines: " . "<br/>";
-                printarray($added);
-            }
+            debug("==deleted lines: ");
+            debug_printarray($deleted);
+            debug("==added lines: ");
+            debug_printarray($added);
             return true;
         } else {
-            if ($GLOBALS['cfg_debug']) {
-                echo "==no difference" . "<br/>";
-            }
+            debug("==no difference");
             return false;
         }
     }
