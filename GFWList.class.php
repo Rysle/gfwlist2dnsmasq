@@ -47,6 +47,7 @@ class GFWList {
     var $url_target_dnsmasq_file;
     var $url_diff_txt_file;
     var $url_diff_img_file;
+    var $url_debug_log_file;
 
     var $content_gfwlist;
     var $content_domains;
@@ -60,6 +61,9 @@ class GFWList {
     var $update_now;
     var $update_success;
     var $update_has_diff;
+
+    var $server_dnsmasq_conf_md5;
+    var $client_dnsmasq_conf_md5;
 
     function __construct() {
         settimezone();
@@ -78,6 +82,8 @@ class GFWList {
 
         // don't echo the content
         $this->action_param_not_echo = isparamtrue("not_echo");
+
+        $this->client_dnsmasq_conf_md5 = getparam("clientmd5");
 
         /* Configs */
         $this->gfwlist_url = $GLOBALS['cfg_gfwlist_url'];
@@ -112,13 +118,15 @@ class GFWList {
         $this->diff_txt_file = $this->target_dir . "diff_" . $this->date_time_now . ".txt";
         $this->diff_img_file = "";
 
+        $this->debug_log_file = $this->target_dir . "log_" . $this->date_time_now . ".txt";
+
         $this->url_target_gfwlist_file = "";
         $this->url_target_gfwlist_domain_file = "";
         $this->url_target_dnsmasq_file = "";
         $this->url_diff_txt_file = "";
         $this->url_diff_img_file = "";
+        $this->url_debug_log_file = "";
 
-        $this->debug_log_file = $this->target_dir . "log_" . $this->date_time_now . ".txt";
     }
 
     function GFWList() {
@@ -308,6 +316,7 @@ class GFWList {
 
         $content_extra = loadfile($extracontentfile);
         $domains_extra = explode("\n", $content_extra);
+        $this->content_domains_extra = $domains_extra;
         $this->appendArrayToDnsmasqConf("Extra Domains", $domains_extra, $dnsmasqconf, $dnsserver, $ipsetname);
 
         savefile($dnsmasqconf, $outputfilename);
@@ -344,17 +353,49 @@ class GFWList {
         savefile($lastUpdateTime, $lastUpdateFile);
     }
 
-    function sendListUpdateMail($imagepath, $imageurl) {
-        debug("==sendlistupdatemail: " . $imageurl);
-        $image_raw = file_get_contents($imagepath);
-        $image_base64 = base64_encode($image_raw);
+    function sendListUpdateMail() {
+        debug("==sendlistupdatemail: " . $this->url_diff_img_file);
+
         $from = $GLOBALS['cfg_mail_from'];
         $replyto = $GLOBALS['cfg_mail_replyto'];
         $to = $GLOBALS['cfg_mail_to'];
         $subject = $GLOBALS['cfg_mail_subject'];
         $message = $GLOBALS['cfg_mail_message'];
-        $message = str_ireplace("#imageurl#", $imageurl, $message);
-        $message = str_ireplace("#image_base64#", $image_base64, $message);
+
+        $mail_data_tag_datetimenow = $GLOBALS['cfg_mail_data_tag_datetimenow'];
+        $mail_data_tag_isforceupdate = $GLOBALS['cfg_mail_data_tag_isforceupdate'];
+        $mail_data_tag_willnotecho = $GLOBALS['cfg_mail_data_tag_willnotecho'];
+        $mail_data_tag_debugvalid = $GLOBALS['cfg_mail_data_tag_debugvalid'];
+        $mail_data_tag_debuginvalid = $GLOBALS['cfg_mail_data_tag_debuginvalid'];
+        $mail_data_tag_debugmail = $GLOBALS['cfg_mail_data_tag_debugmail'];
+        $mail_data_tag_debugsavelog = $GLOBALS['cfg_mail_data_tag_debugsavelog'];
+        $mail_data_tag_servermd5 = $GLOBALS['cfg_mail_data_tag_servermd5'];
+        $mail_data_tag_clientmd5 = $GLOBALS['cfg_mail_data_tag_clientmd5'];
+        $mail_data_tag_diffimgurl = $GLOBALS['cfg_mail_data_tag_diffimgurl'];
+        $mail_data_tag_diffimgdata = $GLOBALS['cfg_mail_data_tag_diffimgdata'];
+        $mail_data_tag_debuglogurl = $GLOBALS['cfg_mail_data_tag_debuglogurl'];
+        $mail_data_tag_debuglogdata = $GLOBALS['cfg_mail_data_tag_debuglogdata'];
+
+        $image_raw = file_get_contents($this->diff_img_file);
+        $image_base64 = base64_encode($image_raw);
+        $debug_log = get_debug_log();
+        $debug_log = str_replace("\n", "<br/>", $debug_log);
+
+        $subject = str_ireplace($mail_data_tag_datetimenow, $this->date_time_now, $subject);
+
+        $message = str_ireplace($mail_data_tag_datetimenow, $this->date_time_now, $message);
+        $message = str_ireplace($mail_data_tag_isforceupdate, var_export($this->action_param_force, true), $message);
+        $message = str_ireplace($mail_data_tag_willnotecho, var_export($this->action_param_not_echo, true), $message);
+        $message = str_ireplace($mail_data_tag_debugvalid, var_export($this->debug_valid, true), $message);
+        $message = str_ireplace($mail_data_tag_debuginvalid, var_export($this->debug_invalid, true), $message);
+        $message = str_ireplace($mail_data_tag_debugmail, var_export($this->debug_mail, true), $message);
+        $message = str_ireplace($mail_data_tag_debugsavelog, var_export($this->debug_save_log, true), $message);
+        $message = str_ireplace($mail_data_tag_servermd5, $this->server_dnsmasq_conf_md5, $message);
+        $message = str_ireplace($mail_data_tag_clientmd5, $this->client_dnsmasq_conf_md5, $message);
+        $message = str_ireplace($mail_data_tag_diffimgurl, $this->url_diff_img_file, $message);
+        $message = str_ireplace($mail_data_tag_diffimgdata, $image_base64, $message);
+        $message = str_ireplace($mail_data_tag_debuglogurl, $this->url_debug_log_file, $message);
+        $message = str_ireplace($mail_data_tag_debuglogdata, $debug_log, $message);
 
         sendmail($from, $replyto, $to, $subject, $message);
         $this->debug_mail($message);
@@ -371,8 +412,12 @@ class GFWList {
             $this->content_domains = $this->processGFWContent($this->content_gfwlist, $this->target_gfwlist_domain_file);
             $this->content_dnsmasq_conf = $this->generateDnsmasqConf($this->content_domains, $this->dnsmasq_dnsserver,
                 $this->dnsmasq_ipsetname, $this->dnsmasq_template, $this->gfwlist_domain_extra_file, $this->target_dnsmasq_file);
+            $this->server_dnsmasq_conf_md5 = md5($this->content_dnsmasq_conf);
             if (sizeof($this->content_domains) > 0) {
                 $this->update_success = true;
+                debug("==updateSuccess");
+            } else {
+                debug("==updateFailed");
             }
         }
 
@@ -380,8 +425,13 @@ class GFWList {
             $this->update_has_diff = comparediff($this->dir_yesterday . $this->gfwlist_domain_file, $this->dir_today . $this->gfwlist_domain_file, $this->diff_txt_file);
             if ($this->update_has_diff) {
                 $this->diff_img_file = diff2image($this->diff_txt_file);
+                $this->url_target_gfwlist_file = getfileurl($this->target_gfwlist_file);
+                $this->url_target_gfwlist_domain_file = getfileurl($this->target_gfwlist_domain_file);
+                $this->url_target_dnsmasq_file = getfileurl($this->target_dnsmasq_file);
+                $this->url_diff_txt_file = getfileurl($this->diff_txt_file);
                 $this->url_diff_img_file = getfileurl($this->diff_img_file);
-                $this->sendListUpdateMail($this->diff_img_file, $this->url_diff_img_file);
+                $this->url_debug_log_file = getfileurl($this->debug_log_file);
+                $this->sendListUpdateMail();
             }
             $this->saveLastUpdateTime($this->time_update_start, $this->update_log_file);
         } else {

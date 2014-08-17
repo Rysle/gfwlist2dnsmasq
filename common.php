@@ -51,6 +51,14 @@
         }
     }
 
+    function getparam($paramname) {
+        if (isset($_REQUEST[$paramname])) {
+            return $_REQUEST[$paramname];
+        } else {
+            return "";
+        }
+    }
+
     function settimezone() {
         if(version_compare(PHP_VERSION, '5.1.0', '>=')) {
             date_default_timezone_set($GLOBALS['cfg_common_timezone']);
