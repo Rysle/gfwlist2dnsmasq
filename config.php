@@ -2,16 +2,10 @@
 
 // output function execution log
 $cfg_debug = false;
-// output invalid lines that were filtered
-$cfg_debug_invalid = false;
-// output valid lines reserved
-$cfg_debug_valid = false;
 // output log while adding valid lines to an array
 $cfg_debug_addtoarray = false;
 // output what's inside an array
 $cfg_debug_printarray = false;
-// output mail message
-$cfg_debug_mail = false;
 
 $cfg_common_timezone = "Asia/Shanghai";
 
@@ -51,7 +45,6 @@ $cfg_update_log_file = "lastupdate.txt";
 $cfg_update_interval = 60 * 60 * 6;
 
 $cfg_action_get = false;
-$cfg_action_force = false;
 $cfg_action_md5 = false;
 
 ?>

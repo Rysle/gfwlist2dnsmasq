@@ -4,6 +4,13 @@ require_once("common.php");
 
 class GFWList {
 
+    var $debug_valid;
+    var $debug_invalid;
+    var $debug_mail;
+
+    var $action_param_force;
+    var $action_param_not_echo;
+
     var $gfwlist_url;
     var $gfwlist_file;
     var $gfwlist_domain_file;
@@ -54,6 +61,21 @@ class GFWList {
     function __construct() {
         settimezone();
 
+        // output invalid lines that were filtered
+        $this->debug_valid = isparamtrue("debug_invalid");
+
+        // output valid lines reserved
+        $this->debug_invalid = isparamtrue("debug_valid");
+
+        // output mail message
+        $this->debug_mail = isparamtrue("debug_mail");
+
+        // force update
+        $this->action_param_force = isparamtrue("force");
+
+        // don't echo the content
+        $this->action_param_not_echo = isparamtrue("not_echo");
+
         /* Configs */
         $this->gfwlist_url = $GLOBALS['cfg_gfwlist_url'];
         $this->gfwlist_file = $GLOBALS['cfg_gfwlist_file'];
@@ -103,19 +125,19 @@ class GFWList {
     }
 
     function debug_valid($log) {
-        if ($GLOBALS['cfg_debug_valid']) {
+        if ($this->debug_valid) {
             debug($log);
         }
     }
 
     function debug_invalid($log) {
-        if ($GLOBALS['cfg_debug_invalid']) {
+        if ($this->debug_invalid) {
             debug($log);
         }
     }
 
     function debug_mail($log) {
-        if ($GLOBALS['cfg_debug_mail']) {
+        if ($this->debug_mail) {
             debug($log);
         }
     }
@@ -298,7 +320,7 @@ class GFWList {
             $lastUpdateTime = 0;
         }
 
-        if ($GLOBALS['cfg_action_force']) {
+        if ($this->action_param_force) {
             // force update
             $lastUpdateTime = 0;
         }
@@ -362,7 +384,9 @@ class GFWList {
 
         $this->time_update_finish = time();
         debug("==consumes: " . ($this->time_update_finish - $this->time_update_start) . "s");
-        echo base64_encode($this->content_dnsmasq_conf);
+        if (!$this->action_param_not_echo) {
+            echo base64_encode($this->content_dnsmasq_conf);
+        }
     }
 
     function md5() {

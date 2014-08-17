@@ -2,6 +2,15 @@
 
     require_once("config.php");
 
+    // output function execution log
+    $GLOBALS['cfg_debug'] = isparamtrue("debug");
+
+    // output log while adding valid lines to an array
+    $GLOBALS['cfg_debug_addtoarray'] = isparamtrue("debug_addtoarray");
+
+    // output what's inside an array
+    $GLOBALS['cfg_debug_printarray'] = isparamtrue("debug_printarray");
+
     function debug($log) {
         if ($GLOBALS['cfg_debug']) {
             echo $log . "<br/>";
