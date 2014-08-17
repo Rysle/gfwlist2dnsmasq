@@ -6,6 +6,8 @@ $cfg_debug = false;
 $cfg_debug_addtoarray = false;
 // output what's inside an array
 $cfg_debug_printarray = false;
+// save log to file, no matter it will appear on screen or not.
+$cfg_debug_savelog = true;
 
 $cfg_common_timezone = "Asia/Shanghai";
 

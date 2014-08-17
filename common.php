@@ -11,10 +11,21 @@
     // output what's inside an array
     $GLOBALS['cfg_debug_printarray'] = isparamtrue("debug_printarray");
 
+    $GLOBALS['debug_log'] = "";
+
     function debug($log) {
         if ($GLOBALS['cfg_debug']) {
-            echo $log . "<br/>";
+            echo date("m-d H:i:s:") . $log . "<br/>";
         }
+        $GLOBALS['debug_log'] = $GLOBALS['debug_log'] . date("m-d H:i:s:") . $log . "\n";
+    }
+
+    function get_debug_log() {
+        return $GLOBALS['debug_log'];
+    }
+
+    function save_debug_log($filename) {
+        savefile($GLOBALS['debug_log'], $filename);
     }
 
     function debug_addtoarray($log) {
@@ -23,7 +34,7 @@
         }
     }
 
-    function debug_printarray(& $myarray) {
+    function debug_printarray(&$myarray) {
         if ($GLOBALS['cfg_debug_printarray']) {
             debug("==printarray");
             foreach ($myarray as $value) {
@@ -62,8 +73,8 @@
         return $filecontent;
     }
 
-    function savefile(& $content, $filename) {
-        debug("==savefile: " . $filename);
+    function savefile(&$content, $filename) {
+        debug("==savefile: " . $filename . ", size: " . strlen($content));
         $myfile = fopen($filename, "w") or die("Unable to open file!");
         fwrite($myfile, $content);
         debug("==savefile: done.");
@@ -84,7 +95,7 @@
         return $filecontent;
     }
 
-    function addtoarray(& $myarray, $newvalue) {
+    function addtoarray(&$myarray, $newvalue) {
         debug_addtoarray("==addtoarray: ");
         foreach ($myarray as $value) {
             if ($newvalue == $value) {
@@ -97,7 +108,7 @@
         return true;
     }
 
-    function printarraytofile(& $myarray, $filename) {
+    function printarraytofile(&$myarray, $filename) {
         $content = "";
         foreach ($myarray as $value) {
             $content = $content . $value . "\n";
@@ -137,6 +148,9 @@
         $deleted = array_diff($content1_array, $content2_array);
         $added = array_diff($content2_array, $content1_array);
 
+        debug("==file1MD5: " . md5($content1));
+        debug("==file2MD5: " . md5($content2));
+
         if (sizeof($deleted) > 0 || sizeof($added) > 0) {
             $diffcontent = "#Deleted: \n";
             $diffcontent = $diffcontent . implode("\n", $deleted);
@@ -144,9 +158,9 @@
             $diffcontent = $diffcontent . implode("\n", $added);
             savefile($diffcontent, $diffpath);
 
-            debug("==deleted lines: ");
+            debug("==deleted lines: " . sizeof($deleted));
             debug_printarray($deleted);
-            debug("==added lines: ");
+            debug("==added lines: " . sizeof($added));
             debug_printarray($added);
             return true;
         } else {

@@ -8,6 +8,9 @@ class GFWList {
     var $debug_invalid;
     var $debug_mail;
 
+    var $debug_save_log;
+    var $debug_log_file;
+
     var $action_param_force;
     var $action_param_not_echo;
 
@@ -90,6 +93,8 @@ class GFWList {
         $this->update_log_file = $GLOBALS['cfg_update_log_file'];
         $this->update_interval = $GLOBALS['cfg_update_interval'];
 
+        $this->debug_save_log = $GLOBALS['cfg_debug_savelog'];
+
         /* Date Time */
         $this->date_time_now = date("YmdHis");
         $this->date_of_today = date("Ymd");
@@ -113,11 +118,7 @@ class GFWList {
         $this->url_diff_txt_file = "";
         $this->url_diff_img_file = "";
 
-        $this->content_gfwlist = "";
-        $this->content_domains = "";
-        $this->content_domains_extra = "";
-        $this->content_dnsmasq_conf = "";
-
+        $this->debug_log_file = $this->target_dir . "log_" . $this->date_time_now . ".txt";
     }
 
     function GFWList() {
@@ -296,6 +297,7 @@ class GFWList {
             $domaincount++;
         }
         $dnsmasqconf = $dnsmasqconf . "#" . $arrayname . " Total: " . $domaincount . "\n";
+        debug("==appendArrayToDnsmasqConf: " . $arrayname . ", domaincount: " . $domaincount);
     }
 
     function generateDnsmasqConf(&$domains, $dnsserver, $ipsetname, $templatefile, $extracontentfile, $outputfilename) {
@@ -314,15 +316,19 @@ class GFWList {
     }
 
     function shouldUpdateNow($currentTime, $lastUpdateTime, $updateinterval) {
+        debug("==lastUpdateTime: " . $lastUpdateTime);
+        debug("==currentTime: " . $currentTime);
         if (!file_exists($this->target_dir)) {
             // if we come to a new day, ignore updateinterval.
             mkdir($this->target_dir);
             $lastUpdateTime = 0;
+            debug("==newDay");
         }
 
         if ($this->action_param_force) {
             // force update
             $lastUpdateTime = 0;
+            debug("==forceUpdate");
         }
 
         if (($currentTime - $lastUpdateTime) > $updateinterval) {
@@ -384,6 +390,9 @@ class GFWList {
 
         $this->time_update_finish = time();
         debug("==consumes: " . ($this->time_update_finish - $this->time_update_start) . "s");
+        if ($this->debug_save_log) {
+            save_debug_log($this->debug_log_file);
+        }
         if (!$this->action_param_not_echo) {
             echo base64_encode($this->content_dnsmasq_conf);
         }
