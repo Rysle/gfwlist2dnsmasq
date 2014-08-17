@@ -4,7 +4,97 @@ require_once("common.php");
 
 class GFWList {
 
+    var $gfwlist_url;
+    var $gfwlist_file;
+    var $gfwlist_domain_file;
+    var $gfwlist_domain_extra_file;
+
+    var $dnsmasq_dnsserver;
+    var $dnsmasq_ipsetname;
+    var $dnsmasq_template;
+    var $dnsmasq_file;
+
+    var $update_log_file;
+    var $update_interval;
+
+    var $date_time_now;
+    var $date_of_today;
+    var $date_of_yesterday;
+
+    var $dir_today;
+    var $dir_yesterday;
+
+    var $target_dir;
+    var $target_gfwlist_file;
+    var $target_gfwlist_domain_file;
+    var $target_dnsmasq_file;
+
+    var $diff_txt_file;
+    var $diff_img_file;
+
+    var $url_target_gfwlist_file;
+    var $url_target_gfwlist_domain_file;
+    var $url_target_dnsmasq_file;
+    var $url_diff_txt_file;
+    var $url_diff_img_file;
+
+    var $content_gfwlist;
+    var $content_domains;
+    var $content_domains_extra;
+    var $content_dnsmasq_conf;
+
+    var $time_update_start;
+    var $time_update_finish;
+    var $time_last_update_time;
+
+    var $update_now;
+    var $update_success;
+    var $update_has_diff;
+
     function __construct() {
+        settimezone();
+
+        /* Configs */
+        $this->gfwlist_url = $GLOBALS['cfg_gfwlist_url'];
+        $this->gfwlist_file = $GLOBALS['cfg_gfwlist_file'];
+        $this->gfwlist_domain_file = $GLOBALS['cfg_gfwlist_domain_file'];
+        $this->gfwlist_domain_extra_file = $GLOBALS['cfg_gfwlist_domain_extra_file'];
+
+        $this->dnsmasq_dnsserver = $GLOBALS['cfg_dnsmasq_dnsserver'];
+        $this->dnsmasq_ipsetname = $GLOBALS['cfg_dnsmasq_ipsetname'];
+        $this->dnsmasq_template = $GLOBALS['cfg_dnsmasq_template'];
+        $this->dnsmasq_file = $GLOBALS['cfg_dnsmasq_file'];
+
+        $this->update_log_file = $GLOBALS['cfg_update_log_file'];
+        $this->update_interval = $GLOBALS['cfg_update_interval'];
+
+        /* Date Time */
+        $this->date_time_now = date("YmdHis");
+        $this->date_of_today = date("Ymd");
+        $this->date_of_yesterday = date("Ymd", strtotime("-1 days"));
+
+        /* Dir and Files */
+        $this->dir_today = "./" . $this->date_of_today . "/";
+        $this->dir_yesterday  = "./" . $this->date_of_yesterday . "/";
+
+        $this->target_dir = $this->dir_today;
+        $this->target_gfwlist_file = $this->target_dir . $this->gfwlist_file;
+        $this->target_gfwlist_domain_file = $this->target_dir . $this->gfwlist_domain_file;
+        $this->target_dnsmasq_file = $this->target_dir . $this->dnsmasq_file;
+
+        $this->diff_txt_file = $this->target_dir . "diff_" . $this->date_time_now . ".txt";
+        $this->diff_img_file = "";
+
+        $this->url_target_gfwlist_file = "";
+        $this->url_target_gfwlist_domain_file = "";
+        $this->url_target_dnsmasq_file = "";
+        $this->url_diff_txt_file = "";
+        $this->url_diff_img_file = "";
+
+        $this->content_gfwlist = "";
+        $this->content_domains = "";
+        $this->content_domains_extra = "";
+        $this->content_dnsmasq_conf = "";
 
     }
 
@@ -172,50 +262,43 @@ class GFWList {
         return $domains;
     }
 
-    function generateDnsmasqConf(& $domains, $dnsserver, $ipsetname, $templatefile, $extracontentfile, $outputfilename) {
+    function appendArrayToDnsmasqConf($arrayname, &$array, &$dnsmasqconf, $dnsserver, $ipsetname) {
+        $dnsmasqconf = $dnsmasqconf . "\n#" . $arrayname . "\n";
+        $domaincount = 0;
+        foreach ($array as $domain) {
+            if (empty($domain)) {
+                continue;
+            }
+            $dnsmasqconf = $dnsmasqconf . "server=/" . $domain . "/" . $dnsserver . "\n";
+            $dnsmasqconf = $dnsmasqconf . "ipset=/" . $domain . "/" . $ipsetname . "\n";
+            $domaincount++;
+        }
+        $dnsmasqconf = $dnsmasqconf . "#" . $arrayname . " Total: " . $domaincount . "\n";
+    }
+
+    function generateDnsmasqConf(&$domains, $dnsserver, $ipsetname, $templatefile, $extracontentfile, $outputfilename) {
         debug("==generateDnsmasqConf");
         $template = loadfile($templatefile);
         $dnsmasqconf = $template;
-        $dnsmasqconf = $dnsmasqconf . "\n#GFWList Domains" . "\n";
-        $domaincount = 0;
-        foreach ($domains as $domain) {
-            if (empty($domain)) {
-                continue;
-            }
-            $dnsmasqconf = $dnsmasqconf . "server=/" . $domain . "/" . $dnsserver . "\n";
-            $dnsmasqconf = $dnsmasqconf . "ipset=/" . $domain . "/" . $ipsetname . "\n";
-            $domaincount++;
-        }
-        $dnsmasqconf = $dnsmasqconf . "#GFWList Domains Total: " . $domaincount . "\n";
-        $dnsmasqconf = $dnsmasqconf . "\n#Extra Domains" . "\n";
+        $this->appendArrayToDnsmasqConf("GFWList Domains", $domains, $dnsmasqconf, $dnsserver, $ipsetname);
 
         $content_extra = loadfile($extracontentfile);
         $domains_extra = explode("\n", $content_extra);
-        $domaincount = 0;
-        foreach ($domains_extra as $domain) {
-            if (empty($domain)) {
-                continue;
-            }
-            $dnsmasqconf = $dnsmasqconf . "server=/" . $domain . "/" . $dnsserver . "\n";
-            $dnsmasqconf = $dnsmasqconf . "ipset=/" . $domain . "/" . $ipsetname . "\n";
-            $domaincount++;
-        }
-        $dnsmasqconf = $dnsmasqconf . "#Extra Domains Total: " . $domaincount . "\n";
-        $dnsmasqconf = $dnsmasqconf . "#Last Update Time: " . date("YmdHis") . "\n";
+        $this->appendArrayToDnsmasqConf("Extra Domains", $domains_extra, $dnsmasqconf, $dnsserver, $ipsetname);
 
         savefile($dnsmasqconf, $outputfilename);
         debug("==generateDnsmasqConf: done.");
         return $dnsmasqconf;
     }
 
-    function shouldUpdateNow($lastupdatefile, $updateinterval) {
-        $lastUpdateTime = loadfile($lastupdatefile);
-        $currentTime = time();
+    function shouldUpdateNow($currentTime, $lastUpdateTime, $updateinterval) {
+        if (!file_exists($this->target_dir)) {
+            // if we come to a new day, ignore updateinterval.
+            mkdir($this->target_dir);
+            $lastUpdateTime = 0;
+        }
 
-        if ($GLOBALS['cfg_action_md5']) {
-            // do not update
-            $lastUpdateTime = $currentTime;
-        } else if ($GLOBALS['cfg_action_force']) {
+        if ($GLOBALS['cfg_action_force']) {
             // force update
             $lastUpdateTime = 0;
         }
@@ -250,71 +333,41 @@ class GFWList {
     }
 
     function get() {
-        settimezone();
-        $start = time();
+        $this->time_update_start = time();
+        $this->time_last_update_time = loadfile($this->update_log_file);
+        $this->update_now = $this->shouldUpdateNow($this->time_update_start, $this->time_last_update_time, $this->update_interval);
+        $this->update_success = false;
 
-        /* Configs */
-        $gfwlist_url = $GLOBALS['cfg_gfwlist_url'];
-        $gfwlist_file = $GLOBALS['cfg_gfwlist_file'];
-        $gfwlist_domain_file = $GLOBALS['cfg_gfwlist_domain_file'];
-        $gfwlist_domain_extra_file = $GLOBALS['cfg_gfwlist_domain_extra_file'];
-
-        $dnsmasq_dnsserver = $GLOBALS['cfg_dnsmasq_dnsserver'];
-        $dnsmasq_ipsetname = $GLOBALS['cfg_dnsmasq_ipsetname'];
-        $dnsmasq_template = $GLOBALS['cfg_dnsmasq_template'];
-        $dnsmasq_file = $GLOBALS['cfg_dnsmasq_file'];
-
-        $update_log_file = $GLOBALS['cfg_update_log_file'];
-        $update_interval = $GLOBALS['cfg_update_interval'];
-
-        /* Files to create */
-        $today_dir = "./" . date("Ymd") . "/";
-        $yesterday_dir  = "./" . date("Ymd", strtotime("-1 days")) . "/";
-        $target_dir = $today_dir;
-
-        $shouldupdate = $this->shouldUpdateNow($update_log_file, $update_interval);
-
-        if (!file_exists($target_dir)) {
-            // if we come to a new day, ignore updateinterval.
-            $shouldupdate = true;
-            mkdir($target_dir);
-        }
-
-        $target_gfwlist_file = $target_dir . $gfwlist_file;
-        $target_gfwlist_domain_file = $target_dir . $gfwlist_domain_file;
-        $target_dnsmasq_file = $target_dir . $dnsmasq_file;
-        $dnsmasq_conf = "";
-        $updatesuccess = false;
-
-        if ($shouldupdate) {
-            $gfwlist_content = $this->getGFWContent($gfwlist_url, $target_gfwlist_file);
-            $domains = $this->processGFWContent($gfwlist_content, $target_gfwlist_domain_file);
-            $dnsmasq_conf = $this->generateDnsmasqConf($domains, $dnsmasq_dnsserver, $dnsmasq_ipsetname, $dnsmasq_template, $gfwlist_domain_extra_file, $target_dnsmasq_file);
-            if (sizeof($domains) > 0) {
-                $updatesuccess = true;
+        if ($this->update_now) {
+            $this->content_gfwlist = $this->getGFWContent($this->gfwlist_url, $this->target_gfwlist_file);
+            $this->content_domains = $this->processGFWContent($this->content_gfwlist, $this->target_gfwlist_domain_file);
+            $this->content_dnsmasq_conf = $this->generateDnsmasqConf($this->content_domains, $this->dnsmasq_dnsserver,
+                $this->dnsmasq_ipsetname, $this->dnsmasq_template, $this->gfwlist_domain_extra_file, $this->target_dnsmasq_file);
+            if (sizeof($this->content_domains) > 0) {
+                $this->update_success = true;
             }
         }
 
-        if ($updatesuccess) {
-            $diffpath = $target_dir . "diff_" . date("YmdHis") . ".txt";
-            $hasdiff = comparediff($yesterday_dir . $gfwlist_domain_file, $today_dir . $gfwlist_domain_file, $diffpath);
-            if ($hasdiff) {
-                $imagepath = diff2image($diffpath);
-                $imageurl = getfileurl($imagepath);
-                $this->sendListUpdateMail($imagepath, $imageurl);
+        if ($this->update_success) {
+            $this->update_has_diff = comparediff($this->dir_yesterday . $this->gfwlist_domain_file, $this->dir_today . $this->gfwlist_domain_file, $this->diff_txt_file);
+            if ($this->update_has_diff) {
+                $this->diff_img_file = diff2image($this->diff_txt_file);
+                $this->url_diff_img_file = getfileurl($this->diff_img_file);
+                $this->sendListUpdateMail($this->diff_img_file, $this->url_diff_img_file);
             }
-            $this->saveLastUpdateTime(time(), $update_log_file);
+            $this->saveLastUpdateTime($this->time_update_start, $this->update_log_file);
         } else {
-            $dnsmasq_conf = loadfile($target_dnsmasq_file);
+            $this->content_dnsmasq_conf = loadfile($this->target_dnsmasq_file);
         }
 
-        debug("==consumes: " . (time() - $start) . "s");
+        $this->time_update_finish = time();
+        debug("==consumes: " . ($this->time_update_finish - $this->time_update_start) . "s");
+        echo base64_encode($this->content_dnsmasq_conf);
+    }
 
-        if ($GLOBALS['cfg_action_get']) {
-            echo base64_encode($dnsmasq_conf);
-        } else if ($GLOBALS['cfg_action_md5']) {
-            echo md5($dnsmasq_conf);
-        }
+    function md5() {
+        $this->content_dnsmasq_conf = loadfile($this->target_dnsmasq_file);
+        echo md5($this->content_dnsmasq_conf);
     }
 }
 ?>

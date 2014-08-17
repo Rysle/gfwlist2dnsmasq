@@ -40,6 +40,12 @@ $GLOBALS['cfg_action_md5'] = isparamtrue("md5");
 $GLOBALS['cfg_action_force'] = isparamtrue("force");
 
 $gfwlist = new GFWList();
-$gfwlist->get();
+
+if ($GLOBALS['cfg_action_get']) {
+    $gfwlist->get();
+} else if ($GLOBALS['cfg_action_md5']) {
+    $gfwlist->md5();
+}
+
 
 ?>
