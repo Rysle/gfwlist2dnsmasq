@@ -412,7 +412,6 @@ class GFWList {
             $this->content_domains = $this->processGFWContent($this->content_gfwlist, $this->target_gfwlist_domain_file);
             $this->content_dnsmasq_conf = $this->generateDnsmasqConf($this->content_domains, $this->dnsmasq_dnsserver,
                 $this->dnsmasq_ipsetname, $this->dnsmasq_template, $this->gfwlist_domain_extra_file, $this->target_dnsmasq_file);
-            $this->server_dnsmasq_conf_md5 = md5($this->content_dnsmasq_conf);
             if (sizeof($this->content_domains) > 0) {
                 $this->update_success = true;
                 debug("==updateSuccess");
@@ -424,6 +423,7 @@ class GFWList {
         if ($this->update_success) {
             $this->update_has_diff = comparediff($this->dir_yesterday . $this->gfwlist_domain_file, $this->dir_today . $this->gfwlist_domain_file, $this->diff_txt_file);
             if ($this->update_has_diff) {
+                debug("==updateHasDiff");
                 $this->diff_img_file = diff2image($this->diff_txt_file);
                 $this->url_target_gfwlist_file = getfileurl($this->target_gfwlist_file);
                 $this->url_target_gfwlist_domain_file = getfileurl($this->target_gfwlist_domain_file);
@@ -431,11 +431,19 @@ class GFWList {
                 $this->url_diff_txt_file = getfileurl($this->diff_txt_file);
                 $this->url_diff_img_file = getfileurl($this->diff_img_file);
                 $this->url_debug_log_file = getfileurl($this->debug_log_file);
-                $this->sendListUpdateMail();
+            } else {
+                debug("==updateHasNoDiff");
             }
             $this->saveLastUpdateTime($this->time_update_start, $this->update_log_file);
         } else {
             $this->content_dnsmasq_conf = loadfile($this->target_dnsmasq_file);
+        }
+
+        $this->server_dnsmasq_conf_md5 = md5($this->content_dnsmasq_conf);
+        debug("==serverDnsmasqConfMD5: " . $this->server_dnsmasq_conf_md5);
+        debug("==clientDnsmasqConfMD5: " . $this->client_dnsmasq_conf_md5);
+        if ($this->update_has_diff) {
+            $this->sendListUpdateMail();
         }
 
         $this->time_update_finish = time();
