@@ -38,9 +38,10 @@ gfwlist2dnsmasq是一个简单的php程序，用于将gfwlist转换成dnsmasq的
 
 #### 客户端配置
 1. 确保已经有wget、base64、md5sum命令
-2. 将updategfwlist.sh上传到路由器，并赋予执行权限
-3. 将updategfwlist.sh添加到定时任务中，根据自己的需要确定时间间隔，一般6小时执行一次即可
-4. 手动执行一遍updategfwlist.sh，带上参数1可以强制服务器更新
+2. 修改updategfwlist.sh中的url_host_root为你自己的url
+3. 将updategfwlist.sh上传到路由器，并赋予执行权限
+4. 将updategfwlist.sh添加到定时任务中，根据自己的需要确定时间间隔，一般6小时执行一次即可
+5. 手动执行一遍updategfwlist.sh，带上参数1可以强制服务器更新
 
 如果看到下面的提示，则说明下载成功且文件有更新
 
@@ -72,6 +73,6 @@ gfwlist2dnsmasq是一个简单的php程序，用于将gfwlist转换成dnsmasq的
 ### Todo
 1. 为diff、diff2image、sendmail等功能加上开关
 2. <del>updategfwlist.sh逻辑优化，如果正在使用的dnsmasq.conf和新下载的md5一致，则忽略本次更新</del>(2014.8.18)
-3. updategfwlist.sh优化，完善log输出
+3. <del>updategfwlist.sh优化，完善log输出</del>(2014.8.21)
 4. 邮件提醒优化，输出更多配置状态
 5. 增加access log，将所有log文件集中展现，便于查看
