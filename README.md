@@ -69,6 +69,7 @@ gfwlist2dnsmasq是一个简单的php程序，用于将gfwlist转换成dnsmasq的
 * 2014.8.17 优化log输出，加上时间，并支持输出到文件
 * 2014.8.18 优化邮件提醒功能，细化了邮件提醒的内容，现在内容更详细了
 * 2014.8.18 优化updategfwlist.sh，支持强制服务器更新；请求时带上本地文件的md5，同时对比下载的和本地的md5，如果相同则略过本次更新
+* 2014.8.21 优化updategfwlist.sh，完善log输出，修复shellcheck检查出来的问题
 
 ### Todo
 1. 为diff、diff2image、sendmail等功能加上开关
